@@ -1,10 +1,11 @@
+# frozen_string_literal: true
+
 require "forwardable"
 require "i18n"
 
 require "puma"
 
 require_relative "authorization"
-require_relative "feature_flag"
 require_relative "rack_app"
 require_relative "room"
 require_relative "store"
@@ -72,35 +73,13 @@ module Lita
       @name = config.robot.name
       @mention_name = config.robot.mention_name || @name
       @alias = config.robot.alias
-      @async_dispatch = handlers.map do |handler|
-        enabled = handler.feature_enabled?(:async_dispatch)
-
-        unless enabled
-          logger.warn FEATURE_FLAGS.fetch(:async_dispatch).opt_in_warning_for(handler)
-        end
-
-        enabled
-      end.all?
-      unless config.robot.error_handler.arity == 2
-        logger.warn FEATURE_FLAGS.fetch(:error_handler_metadata).change_warning
-      end
       @store = Store.new(Hash.new { |h, k| h[k] = Store.new })
       @app = RackApp.build(self)
       @auth = Authorization.new(self)
       handlers.each do |handler|
-        unless handler.after_config_block.nil?
-          handler.after_config_block.call(config.handlers.public_send(handler.namespace))
-        end
+        handler.after_config_block&.call(config.handlers.public_send(handler.namespace))
       end
       trigger(:loaded, room_ids: persisted_rooms)
-    end
-
-    # Flag to determine whether or not to dispatch messages to chat routes asynchronously.
-    # Requires all loaded handlers to enable the async_dispatch feature.
-    # @api private
-    # @since 5.0.0
-    def async_dispatch?
-      @async_dispatch
     end
 
     # The primary entry point from the adapter for an incoming message.
@@ -211,8 +190,8 @@ module Lita
     # @return [void]
     def shut_down
       trigger(:shut_down_started)
-      @server.stop(true) if @server
-      @server_thread.join if @server_thread
+      @server&.stop(true)
+      @server_thread&.join
       adapter.shut_down
       trigger(:shut_down_complete)
     end

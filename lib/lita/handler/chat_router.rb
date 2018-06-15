@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "i18n"
 
 require_relative "../callback"
@@ -80,11 +82,7 @@ module Lita
           next unless route_applies?(route, message, robot)
           log_dispatch(robot, route)
 
-          if robot.async_dispatch?
-            robot.run_concurrently { dispatch_to_route(route, robot, message) }
-          else
-            dispatch_to_route(route, robot, message)
-          end
+          robot.run_concurrently { dispatch_to_route(route, robot, message) }
 
           true
         end.any?
@@ -109,9 +107,11 @@ module Lita
           message: message,
           robot: robot
         )
+      # rubocop:disable RescueStandardError
       rescue => error
         log_error(robot, error, message: message)
       end
+      # rubocop:enable RescueStandardError
 
       private
 

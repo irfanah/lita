@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "spec_helper"
 
 describe Lita::Robot, lita: true do
@@ -11,12 +13,12 @@ describe Lita::Robot, lita: true do
   end
 
   context "when there are previously persisted rooms" do
-    before { %w(#foo #bar).each { |id| Lita.redis.sadd("persisted_rooms", id) } }
+    before { %w[#foo #bar].each { |id| Lita.redis.sadd("persisted_rooms", id) } }
 
     it "receives the room_ids in the payload" do
       expect_any_instance_of(described_class).to receive(:trigger).with(
         :loaded,
-        room_ids: %w(#foo #bar).sort,
+        room_ids: %w[#foo #bar].sort,
       )
       subject
     end
@@ -70,50 +72,6 @@ describe Lita::Robot, lita: true do
         expect(handler1).to receive(:trigger).with(subject, :foo, bar: "baz")
         expect(handler2).to receive(:trigger).with(subject, :foo, bar: "baz")
         subject.trigger(:foo, bar: "baz")
-      end
-    end
-  end
-
-  describe "#async_dispatch?" do
-    before do
-      registry.register_handler(handler1)
-      registry.register_handler(handler2)
-    end
-
-    context "when all registered handlers have enabled async dispatch" do
-      let(:handler1) do
-        Class.new(Lita::Handler) do
-          namespace :test
-          feature :async_dispatch
-        end
-      end
-      let(:handler2) do
-        Class.new(Lita::Handler) do
-          namespace :test
-          feature :async_dispatch
-        end
-      end
-
-      it "is true" do
-        expect(subject.async_dispatch?).to be(true)
-      end
-    end
-
-    context "when not all registered handlers have enabled async dispatch" do
-      let(:handler1) do
-        Class.new(Lita::Handler) do
-          namespace :test
-          feature :async_dispatch
-        end
-      end
-      let(:handler2) do
-        Class.new(Lita::Handler) do
-          namespace :test
-        end
-      end
-
-      it "is false" do
-        expect(subject.async_dispatch?).to be(false)
       end
     end
   end
@@ -253,7 +211,7 @@ describe Lita::Robot, lita: true do
       expect_any_instance_of(
         Lita::Adapters::Shell
       ).to receive(:send_messages).with(
-        source, %w(foo bar)
+        source, %w[foo bar]
       )
       subject.send_messages(source, "foo", "bar")
     end
@@ -291,7 +249,7 @@ describe Lita::Robot, lita: true do
       allow(source).to receive(:private_message?).and_return(true)
       expect_any_instance_of(Lita::Adapters::Shell).to receive(:send_messages).with(
         source,
-        %w(foo bar)
+        %w[foo bar]
       )
 
       subject.send_messages_with_mention(source, "foo", "bar")
